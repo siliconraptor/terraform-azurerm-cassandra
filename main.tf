@@ -1,23 +1,25 @@
 # Configure the Microsoft Azure Provider
-provider "azurerm" {}
+provider "azurerm" {
+  version = "=1.44.0"
+}
 
 terraform {
-  required_version = ">= 0.10.0"
+  required_version = ">= 0.12.0"
 }
 
 # Create a virtual network in the web_servers resource group
 resource "azurerm_virtual_network" "network" {
   name                = "cassandravn"
-  address_space       = ["${var.address_space}"]
-  location            = "${var.location}"
-  resource_group_name = "${var.resource_group_name}"
+  address_space       = [var.address_space]
+  location            = var.location
+  resource_group_name = var.resource_group_name
 }
 
 resource "azurerm_subnet" "cassandra" {
   name                 = "cassandrasubnet"
-  resource_group_name  = "${var.resource_group_name}"
-  virtual_network_name = "${azurerm_virtual_network.network.name}"
-  address_prefix       = "${var.subnet_address}"
+  resource_group_name  = var.resource_group_name
+  virtual_network_name = azurerm_virtual_network.network.name
+  address_prefix       = var.subnet_address
 }
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -30,17 +32,17 @@ module "cassandra_servers" {
   # source = "git::git@github.com:isaacbroyles/terraform-azurerm-cassandra.git//modules/cassandra-cluster?ref=v0.0.1"
   source = "./modules/cassandra-cluster"
 
-  cluster_name = "${var.cassandra_cluster_name}"
-  cluster_size = "${var.num_cassandra_servers}"
-  key_data     = "${var.key_data}"
+  cluster_name = var.cassandra_cluster_name
+  cluster_size = var.num_cassandra_servers
+  key_data     = var.key_data
 
-  resource_group_name = "${var.resource_group_name}"
+  resource_group_name = var.resource_group_name
 
-  location                                  = "${var.location}"
-  custom_data                               = "${data.template_file.user_data_cassandra.rendered}"
-  instance_size                             = "${var.instance_size}"
-  image_id                                  = "${var.image_uri}"
-  subnet_id                                 = "${azurerm_subnet.cassandra.id}"
+  location                                  = var.location
+  custom_data                               = data.template_file.user_data_cassandra.rendered
+  instance_size                             = var.instance_size
+  image_id                                  = var.image_uri
+  subnet_id                                 = azurerm_subnet.cassandra.id
   associate_public_ip_address_load_balancer = true
 }
 
@@ -50,10 +52,11 @@ module "cassandra_servers" {
 # ---------------------------------------------------------------------------------------------------------------------
 
 data "template_file" "user_data_cassandra" {
-  template = "${file("${path.module}/custom-data-cassandra.sh")}"
+  template = file("${path.module}/custom-data-cassandra.sh")
 
-  vars {
-    listen = "${var.listen}"
-    seeds  = "${var.seeds}"
+  vars = {
+    listen = var.listen
+    seeds  = var.seeds
   }
 }
+

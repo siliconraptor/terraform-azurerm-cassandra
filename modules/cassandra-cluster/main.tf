@@ -22,7 +22,7 @@ resource "azurerm_lb" "cassandra_access" {
 
   frontend_ip_configuration {
     name                 = "PublicIPAddress"
-    public_ip_address_id = "${azurerm_public_ip.cassandra_access.id}"
+    public_ip_address_id = "${azurerm_public_ip.cassandra_access[count.index].id}"
   }
 }
 
@@ -30,7 +30,7 @@ resource "azurerm_lb_nat_pool" "cassandra_lbnatpool" {
   count                          = "${var.associate_public_ip_address_load_balancer ? 1 : 0}"
   resource_group_name            = "${var.resource_group_name}"
   name                           = "ssh"
-  loadbalancer_id                = "${azurerm_lb.cassandra_access.id}"
+  loadbalancer_id                = "${azurerm_lb.cassandra_access[count.index].id}"
   protocol                       = "Tcp"
   frontend_port_start            = 2200
   frontend_port_end              = 2299
@@ -41,7 +41,7 @@ resource "azurerm_lb_nat_pool" "cassandra_lbnatpool" {
 resource "azurerm_lb_backend_address_pool" "cassandra_bepool" {
   count               = "${var.associate_public_ip_address_load_balancer ? 1 : 0}"
   resource_group_name = "${var.resource_group_name}"
-  loadbalancer_id     = "${azurerm_lb.cassandra_access.id}"
+  loadbalancer_id     = "${azurerm_lb.cassandra_access[count.index].id}"
   name                = "BackEndAddressPool"
 }
 
@@ -87,6 +87,7 @@ resource "azurerm_virtual_machine_scale_set" "cassandra" {
     ip_configuration {
       name      = "CassandraIPConfiguration"
       subnet_id = "${var.subnet_id}"
+	  primary = true
     }
   }
 
@@ -102,7 +103,7 @@ resource "azurerm_virtual_machine_scale_set" "cassandra" {
     managed_disk_type = "Standard_LRS"
   }
 
-  tags {
+  tags = {
     scaleSetName = "${var.cluster_name}"
   }
 }
@@ -149,9 +150,10 @@ resource "azurerm_virtual_machine_scale_set" "cassandra_with_load_balancer" {
     ip_configuration {
       name      = "CassandraIPConfiguration"
       subnet_id = "${var.subnet_id}"
+	  primary = true
 
       load_balancer_backend_address_pool_ids = [
-        "${azurerm_lb_backend_address_pool.cassandra_bepool.id}",
+        "${azurerm_lb_backend_address_pool.cassandra_bepool[count.index].id}",
       ]
 
       load_balancer_inbound_nat_rules_ids = ["${element(azurerm_lb_nat_pool.cassandra_lbnatpool.*.id, count.index)}"]
@@ -170,7 +172,7 @@ resource "azurerm_virtual_machine_scale_set" "cassandra_with_load_balancer" {
     managed_disk_type = "Standard_LRS"
   }
 
-  tags {
+  tags = {
     scaleSetName = "${var.cluster_name}"
   }
 }
