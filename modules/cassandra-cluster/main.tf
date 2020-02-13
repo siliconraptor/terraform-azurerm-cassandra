@@ -10,7 +10,7 @@ resource "azurerm_public_ip" "cassandra_access" {
   name                         = "${var.cluster_name}_access"
   location                     = "${var.location}"
   resource_group_name          = "${var.resource_group_name}"
-  public_ip_address_allocation = "static"
+  allocation_method            = "static"
   domain_name_label            = "${var.cluster_name}"
 }
 
